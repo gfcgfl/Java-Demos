@@ -9,7 +9,7 @@ import cc.gfcgfl.hotswap.starter.AppStart;
  * @CreatedAt: 2019/7/15 18:32
  **/
 public class Application {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         AppStart.run(Application.class);
     }
 }

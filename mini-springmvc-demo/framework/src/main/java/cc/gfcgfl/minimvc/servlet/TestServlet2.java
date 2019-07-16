@@ -23,7 +23,7 @@ public class TestServlet2 implements Servlet {
 
     @Override
     public void service(ServletRequest servletRequest, ServletResponse servletResponse) throws ServletException, IOException {
-        servletResponse.getWriter().print("test okkkkk");
+        servletResponse.getWriter().print("impl okkkkk");
     }
 
     @Override

@@ -58,7 +58,7 @@ public class TomcatServer {
 //        TestServlet testServlet = new TestServlet();
 ////        TestServlet2 testServlet2 = new TestServlet2();
 //        Tomcat.addServlet(context, "testServlet", testServlet).setAsyncSupported(true);
-//        context.addServletMappingDecoded("/test.json", "testServlet");
+//        context.addServletMappingDecoded("/impl.json", "testServlet");
 //        tomcat.getHost().addChild(context);
 //
 //        tomcat.start();

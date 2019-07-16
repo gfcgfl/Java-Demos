@@ -1,8 +1,8 @@
 package cc.gfcgfl.hotswap.loader;
+
 import java.io.Closeable;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -34,6 +34,11 @@ public class ClassHotLoader {
         return instance;
     }
 
+
+    public synchronized void reset() {
+        classLoader = new CustomClassLoader(this.classPath);
+    }
+
     /**
      * 自定义类加载引擎
      *
@@ -43,7 +48,8 @@ public class ClassHotLoader {
      */
     public Class<?> loadClass(String name) throws ClassNotFoundException {
         synchronized (this) {
-            classLoader = new CustomClassLoader(this.classPath);
+//            classLoader = new CustomClassLoader(this.classPath);
+
             //先去调用自定义classloader的findclass方法，一般正常的话这里就会返回Class实例
             //也就是这里正常情况下不会调用loadClass方法
             Class<?> findClass = classLoader.findClass(name);
@@ -117,8 +123,6 @@ public class ClassHotLoader {
 
                 return bytes;
 
-            } catch (FileNotFoundException e) {
-                e.printStackTrace();
             } catch (IOException e) {
                 e.printStackTrace();
             } finally {

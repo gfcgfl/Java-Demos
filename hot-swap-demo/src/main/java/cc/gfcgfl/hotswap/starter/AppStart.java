@@ -1,12 +1,16 @@
 package cc.gfcgfl.hotswap.starter;
 
+import cc.gfcgfl.hotswap.annotation.Animal;
+import cc.gfcgfl.hotswap.listener.FileAlterationListener;
 import cc.gfcgfl.hotswap.loader.ClassHotLoader;
-import cc.gfcgfl.hotswap.observer.ClassFileObserver;
+import org.apache.commons.io.monitor.FileAlterationListenerAdaptor;
+import org.apache.commons.io.monitor.FileAlterationMonitor;
+import org.apache.commons.io.monitor.FileAlterationObserver;
 
 import java.io.File;
 import java.lang.reflect.Method;
-import java.util.Observable;
-import java.util.Observer;
+import java.util.LinkedList;
+import java.util.List;
 
 /**
  * @ClassName: ClassLoaderTest
@@ -16,33 +20,75 @@ import java.util.Observer;
  **/
 public class AppStart {
 
-    public static void run(Class<?> aClass) {
-        final String classPath = aClass.getResource("/").getPath();
-        final String className = "cc.gfcgfl.hotswap.test.Person";
-        final String fileName = className.replace(".", "/") + ".class";
 
-        File f = new File(classPath, fileName);
-        ClassFileObserver cfo = new ClassFileObserver(f.getAbsolutePath());
+    public static String classPath = null;
+    private static final String basePackage = "cc.gfcgfl.hotswap.impl";
+    private static List<Class<?>> classInBasePackage;
+    private static Class<Animal> annotationClass = Animal.class;
+    private static String methodName = "sayHello";
 
-        cfo.addObserver(new Observer() {
-            @Override
-            public void update(Observable o, Object arg) {
-                try {
+    public static void run(Class<?> aClass) throws Exception {
+        classPath = aClass.getResource("/").getPath().substring(1);
+//        String absolutePath = getAbsolutePath(basePackage);
+        ClassHotLoader classHotLoader = ClassHotLoader.get(classPath);
+        classHotLoader.reset();
+        startFileListener(classPath);
+        start0(classHotLoader);
+    }
 
-                    Object[] loadTimes = (Object[]) arg;
-                    System.out.println(loadTimes[0] + " <---> " + loadTimes[1]);// 新旧时间对比
+    private static void startFileListener(String classPath) throws Exception {
+        FileAlterationObserver fileAlterationObserver = new FileAlterationObserver(classPath);
 
-                    Class<?> loadClass = ClassHotLoader.get(classPath)
-                            .loadClass(className);
-                    Object person = loadClass.newInstance();
-                    Method sayHelloMethod = loadClass.getMethod("sayHello");
-                    sayHelloMethod.invoke(person);
+        //添加一个文件监听器
+        fileAlterationObserver.addListener(new FileAlterationListener());
+        FileAlterationMonitor fileAlterationMonitor = new FileAlterationMonitor(500);
+        fileAlterationMonitor.addObserver(fileAlterationObserver);
+        fileAlterationMonitor.start();
+    }
 
-                } catch (Exception e) {
-                    e.printStackTrace();
+    public static void start0(ClassHotLoader classHotLoader) throws Exception {
+        componentScan(basePackage, classHotLoader);
+
+        for (Class<?> aClass : classInBasePackage) {
+            Object o = aClass.newInstance();
+            Method method = aClass.getMethod(methodName);
+            method.invoke(o);
+        }
+    }
+
+    private static void componentScan(String basePackage, ClassHotLoader classHotLoader)
+            throws Exception {
+        String absolutePath = getAbsolutePath(basePackage);
+        List<Class<?>> classes = new LinkedList<>();
+        findComponents(classes, new File(absolutePath), classHotLoader);
+        classInBasePackage = classes;
+    }
+
+    private static void findComponents(List<Class<?>> classes,
+                                       File file, ClassHotLoader classHotLoader) throws ClassNotFoundException {
+        if (file.isDirectory()) {
+            File[] files = file.listFiles();
+            if (files != null) {
+                for (File aFile : files) {
+                    findComponents(classes, aFile, classHotLoader);
                 }
             }
-        });
-        cfo.startObserve();
+        } else if (file.getName().endsWith(".class")) {
+            String _class = file.getAbsolutePath()
+                    .replaceAll("\\\\", ".")
+                    .replaceAll("/", ".");
+            _class = _class.substring(classPath.length(), _class.lastIndexOf("."));
+            Class<?> aClass = classHotLoader.loadClass(_class);
+            if (aClass.isAnnotationPresent(annotationClass))
+                classes.add(aClass);
+        }
+    }
+
+    private static String getAbsolutePath(String basePackage) throws Exception {
+        if (classPath == null || classPath.isEmpty())
+            throw new Exception();
+        String basePackagePath = basePackage.replace(".", "/");
+        File f = new File(classPath, basePackagePath);
+        return f.getAbsolutePath();
     }
 }
